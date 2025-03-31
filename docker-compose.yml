@@ -1,0 +1,13 @@
+version: "3.8"
+
+services:
+  printer:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env
+    volumes:
+      - ./output:/app/output
