@@ -90,7 +90,7 @@ def render_grocery_note(payload: dict) -> Image.Image:
     left_col_w = 110  # qty+unit column
     checkbox_size = 20
     right_col_x_offset = left_col_w + checkbox_size + 8
-    right_col_w = usable_w - right_col_x_offset
+    right_col_w = usable_w - right_col_x_offset - 2  # 2px glyph-overhang guard
 
     # --- First pass: compute height ---
     # We draw onto a scratch image just for measurement.
@@ -145,7 +145,7 @@ def render_grocery_note(payload: dict) -> Image.Image:
         # Area header (inverted bar)
         header_h = _line_height(header_font) + 4
         draw.rectangle(
-            [margin, y, margin + usable_w, y + header_h],
+            [margin, y, margin + usable_w - 1, y + header_h],
             fill=0,
         )
         draw.text((margin + 4, y + 2), area.get("name", ""), font=header_font, fill=1)

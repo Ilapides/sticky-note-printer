@@ -70,6 +70,93 @@ def test_width_384():
     assert img.width == 384
 
 
+MARGIN_PAYLOAD = {
+    "title": "Thanksgiving Grocery Run With Extra Long Title That Should Wrap",
+    "areas": [
+        {
+            "name": "Produce & Fresh Vegetables Section",
+            "items": [
+                {
+                    "qty": "2",
+                    "unit": "lb",
+                    "name": "extraordinarily large butternut squash",
+                    "note": "organic from the farmers market if possible",
+                    "checked": False,
+                },
+                {
+                    "qty": "12",
+                    "unit": "oz",
+                    "name": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "note": "single-word-that-is-extremely-long-and-must-hard-break",
+                    "checked": False,
+                },
+                {
+                    "qty": "100",
+                    "unit": "grams",
+                    "name": "cilantro bunch with roots attached",
+                    "note": "very fresh only",
+                    "checked": False,
+                },
+            ],
+        },
+        {
+            "name": "Dairy",
+            "items": [
+                {
+                    "qty": "1",
+                    "unit": "gal",
+                    "name": "whole milk",
+                    "note": "not ultra-pasteurized please get the good kind",
+                    "checked": False,
+                },
+            ],
+        },
+    ],
+}
+
+
+def _assert_no_ink_in_right_margin(width_px, margin_px):
+    """Render with the given dimensions and assert no ink in the right margin strip."""
+    payload = {
+        **MARGIN_PAYLOAD,
+        "options": {
+            "width_px": width_px,
+            "margin_px": margin_px,
+            "line_gap_px": 6,
+            "include_checked": True,
+        },
+    }
+    img = render_grocery_note(payload)
+    assert img.width == width_px
+
+    # Convert to grayscale and threshold: ink = pixel < 128
+    gray = img.convert("L")
+    right_limit = width_px - margin_px
+    strip = gray.crop((right_limit, 0, width_px, img.height))
+
+    # Invert so ink becomes white (255) and background becomes black (0),
+    # then getbbox() returns None if there are no non-zero (i.e. no ink) pixels.
+    from PIL import ImageOps
+
+    inverted = ImageOps.invert(strip)
+    # After invert: former-ink pixels (dark, <128) become >128 (bright).
+    # Threshold at 128 to isolate them.
+    ink_mask = inverted.point(lambda p: 255 if p > 127 else 0)
+    bbox = ink_mask.getbbox()
+    assert bbox is None, (
+        f"Ink detected in the right margin strip (x={right_limit}..{width_px}) "
+        f"at bounding box {bbox}"
+    )
+
+
+def test_no_ink_in_right_margin_384():
+    _assert_no_ink_in_right_margin(384, 16)
+
+
+def test_no_ink_in_right_margin_576():
+    _assert_no_ink_in_right_margin(576, 16)
+
+
 def test_save_artifact(tmp_path):
     """Save a rendered image for manual inspection (optional)."""
     img = render_grocery_note(SAMPLE_PAYLOAD)
