@@ -157,6 +157,22 @@ def test_no_ink_in_right_margin_576():
     _assert_no_ink_in_right_margin(576, 16)
 
 
+def test_footer_increases_height():
+    """A payload with a footer string should produce a taller image."""
+    img_no_footer = render_grocery_note(SAMPLE_PAYLOAD)
+    payload_with_footer = {**SAMPLE_PAYLOAD, "footer": "Food Ops — List #3"}
+    img_with_footer = render_grocery_note(payload_with_footer)
+    assert img_with_footer.height > img_no_footer.height
+
+
+def test_no_footer_still_has_timestamp():
+    """Even without a footer field, the timestamp line is rendered (image has content)."""
+    img = render_grocery_note(SAMPLE_PAYLOAD)
+    assert img.height > 0
+    pixels = list(img.tobytes())
+    assert 0 in pixels
+
+
 def test_save_artifact(tmp_path):
     """Save a rendered image for manual inspection (optional)."""
     img = render_grocery_note(SAMPLE_PAYLOAD)

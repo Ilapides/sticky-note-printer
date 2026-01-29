@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import datetime
+
 from PIL import Image, ImageDraw, ImageFont
 
 from app.rendering.text_layout import measure, wrap_text
@@ -78,6 +80,7 @@ def render_grocery_note(payload: dict) -> Image.Image:
     margin: int = opts.get("margin_px", 16)
     line_gap: int = opts.get("line_gap_px", 6)
     include_checked: bool = opts.get("include_checked", False)
+    footer: str = payload.get("footer", "")
 
     usable_w = width_px - 2 * margin
 
@@ -85,6 +88,7 @@ def render_grocery_note(payload: dict) -> Image.Image:
     title_font = _load_font(28, bold=True)
     header_font = _load_font(22, bold=True)
     item_font = _load_font(20)
+    footer_font = _load_font(14)
 
     # Column layout
     left_col_w = 110  # qty+unit column
@@ -120,6 +124,15 @@ def render_grocery_note(payload: dict) -> Image.Image:
             y += row_h + line_gap
 
         y += line_gap  # section gap
+
+    # Footer area: separator + optional footer text + timestamp
+    y += line_gap * 2 + line_gap  # space before separator + separator gap
+    footer_lh = _line_height(footer_font)
+    if footer:
+        footer_lines = wrap_text(footer, footer_font, sd, usable_w)
+        y += len(footer_lines) * (footer_lh + line_gap)
+    timestamp_str = datetime.now().strftime("Printed %Y-%m-%d %H:%M")
+    y += footer_lh
 
     height = y + margin
 
@@ -180,6 +193,18 @@ def render_grocery_note(payload: dict) -> Image.Image:
             y += row_h + line_gap
 
         y += line_gap  # section gap
+
+    # Footer: thin separator + optional footer text + timestamp
+    y += line_gap * 2
+    draw.line([(margin, y), (margin + usable_w - 1, y)], fill=0, width=1)
+    y += line_gap
+    footer_lh = _line_height(footer_font)
+    if footer:
+        for fl in wrap_text(footer, footer_font, draw, usable_w):
+            draw.text((margin, y), fl, font=footer_font, fill=0)
+            y += footer_lh + line_gap
+    draw.text((margin, y), timestamp_str, font=footer_font, fill=0)
+    y += footer_lh
 
     # Crop to actual content height
     img = img.crop((0, 0, width_px, y + margin))
